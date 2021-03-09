@@ -4,7 +4,6 @@ from PlanetClass import Planet
 from VectorClass import Vector
 from math import pi, degrees, atan2, sqrt
 from random import randint
-import universal
 
 class Toggle:
     def __init__(self, name, val=0):
@@ -26,7 +25,7 @@ class Switch:
         self.yub = self.ylb + points[3]
         self.toggle = toggle
         self.togVal = togVal
-        self.message = universal.font.render(self.text, False, fg)
+        self.message = font.render(self.text, False, fg)
         switches.append(self)
     
     def press(self):
@@ -55,25 +54,15 @@ def definePlanets():
     Pluto = Planet(modes[scale.val]['sizes'][9], Vector(modes[scale.val]['AUs'][9], 0),  modes[scale.val]['momentum'][9], (255, 255, 255, 255), 'Pluto', modes[scale.val]['AUs'][9], modes[scale.val]['mass'][9], velocities[9], 0)
 
 def reset():
-    global t
-    universal.t = 0
-    universal.planets.clear()
-    universal.sf = modes[scale.val]['universal.sf']
+    global t, sf
+    t=0
+    planets.clear()
+    sf=modes[scale.val]['sf']
     definePlanets()
-    universal.pathLayer.fill((0,0,0))
-    
-def zoom():
-	global mlZoom
-	pos = pg.mouse.get_pos()
-	dx = int((pos[0] - mlZoom[0])*universal.sf)
-	dy = int((pos[1] - mlZoom[1])*universal.sf)
-	spPos = (pos[0] - 400 + dx, pos[1] - 400 + dy)
-	universal.mXoff = int((spPos[0]/universal.sf) - spPos[0])
-	universal.mYoff = int((spPos[1]/universal.sf) - spPos[1])
-	mlZoom = pos
-    
-    
-universal.planets = []
+    pathLayer.fill((0,0,0))
+    PlanetClass.init(planetLayer, font, planets, modes[scale.val]['mass'][0], pathLayer)
+
+planets = []
 remove=[]
 velocities = [0, 18, 14, 12, 10, 6, 4, 3, 2, 1]
 modes={
@@ -85,7 +74,7 @@ modes={
         'mass': [2800, 0.0042333505420753745, 0.49832214765100674, 0.5529261744966443, 0.046176262804662666, 61.23838409912236, 13.816624514305898, 1.3853460782319844, 1.3935838926174497, 0.0001274318239741738],
         'momentum': [Vector(0,0), Vector(0,0.037), Vector(0,3.6), Vector(0,3.6), Vector(0,0.28), Vector(0,300), Vector(0,60), Vector(0,5), Vector(0,4.3), Vector(0,0.00033)],
         'dt': {0: 0.005, 1: 0.9},
-        'universal.sf': 1
+        'sf': 1
     }, #abstract
     1:{
         'AUs': [0, 29055, 53640, 74500, 113240, 387400, 707750, 1475100, 2235000, 2942750], 
@@ -95,7 +84,7 @@ modes={
         'mass': [198900000, 3, 486, 597, 63, 189790, 56853, 8659, 10212, 1],
         'momentum' : [Vector(0,0), Vector(0,280), Vector(0,32000), Vector(0,32000), Vector(0,2600), Vector(0,3800000), Vector(0,900000), Vector(0,90000), Vector(0,92000), Vector(0,7)],
         'dt':  {0: 0.005, 1: 300},
-        'universal.sf': 8000
+        'sf': 8000
     } #scalar
     }
 
@@ -106,41 +95,40 @@ play = Toggle('play', val=1)
 speed = Toggle('speed', val=1)
 planAdd = Toggle('planAdd')
 
-universal.add('universal.sf', modes[scale.val]['universal.sf'])
+sf=modes[scale.val]['sf']
 mode_state_colour = [(255,0,0), (0,255,0)]
 controlWidth=300
 vMul = 1
-universal.mXoff=0
-universal.mYoff=0
-mlZoom = (0,0)
-
 growing=False
 growtime=0
 switches=[]
 
 pg.init()
+pg.font.init()
 
 display = pg.display.set_mode((800+controlWidth,800))
-universal.pathLayer.fill((0,0,0))
-universal.planetLayer.fill((0,0,0,0))
+planetLayer = pg.Surface((800,800), pg.SRCALPHA)
+pathLayer = pg.Surface((800,800))
+pathLayer.fill((0,0,0))
+planetLayer.fill((0,0,0,0))
 clock = pg.time.Clock()
+font = pg.font.SysFont('Arial', 16)
 lfont = pg.font.SysFont('Arial', 18)
 
-universal.add('sunM', modes[scale.val]['mass'][0])
-
+PlanetClass.init(planetLayer, font, planets, modes[scale.val]['mass'][0], pathLayer)
 
 definePlanets()
 
 information = Sun
 skip=False
 
-mode_message = universal.font.render('Mode: ', False, (255,255,255))
-grav_message = universal.font.render('Gravity: ', False, (255,255,255))
-linZoom_message = universal.font.render('Linear Zoom: ', False, (255,255,255))
-play_message = universal.font.render('Time: ', False, (255,255,255))
-speed_message = universal.font.render('Speed: ', False, (255,255,255))
-vel_message = universal.font.render(f'{round(vMul, 3)}', False, (255,255,255))
-planAdd_message = universal.font.render('Planet Insert: ', False, (255,255,255))
+mode_message = font.render('Mode: ', False, (255,255,255))
+grav_message = font.render('Gravity: ', False, (255,255,255))
+linZoom_message = font.render('Linear Zoom: ', False, (255,255,255))
+play_message = font.render('Time: ', False, (255,255,255))
+speed_message = font.render('Speed: ', False, (255,255,255))
+vel_message = font.render(f'{round(vMul, 3)}', False, (255,255,255))
+planAdd_message = font.render('Planet Insert: ', False, (255,255,255))
 planGrow_message = lfont.render('Press and hold to grow a planet.', False, (255,255,255))
 planGrow2_message = lfont.render('Let go to set it off.', False, (255,255,255))
 clickinfo_message = lfont.render('Click on planet / label for info.', False, (255,255,255))
@@ -166,10 +154,10 @@ planAddt_button = Switch(display, '   On ', (860, 340, 100, 20), mode_state_colo
 planAddf_button = Switch(display, '     Off', (960, 340, 100, 20), mode_state_colour[not planAdd.val], (0,0,0), planAdd, 0)   
 
 print('\n:::::::::::::::::::::::::::::::::::::::::::::::\n')
-universal.add('t',0)
+t=0
 running = True
 while running:
-        universal.planetLayer.fill((0,0,0,0))
+        planetLayer.fill((0,0,0,0))
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
@@ -182,7 +170,7 @@ while running:
                             if switch.toggle.name in ['scale', 'gravity']:
                                 reset()
                             elif switch.toggle.name == 'speed':
-                                velE_message = universal.font.render(f'{round(vMul, 3)}', False, (0,0,0))
+                                velE_message = font.render(f'{round(vMul, 3)}', False, (0,0,0))
                                 display.blit(velE_message, (870, 260))
                                 if switch.togVal == 1:
                                     vMul += 0.2
@@ -192,20 +180,20 @@ while running:
                                     vMul -= 0.2
                                     if vMul <= 0:
                                         vMul=0
-                                vel_message = universal.font.render(f'{round(vMul, 3)}', False, (255,255,255))
+                                vel_message = font.render(f'{round(vMul, 3)}', False, (255,255,255))
                             break
                     if mouse[0] < 800:
-                        for p in universal.planets:
+                        for p in planets:
                             px = p.prev_vec.x
                             py = p.prev_vec.y
                             pr = p.r
                             textrect = p.namel.get_rect()
-                            textrect.x = int(px-(universal.sf*(p.namel.get_width()/2)))-(5*universal.sf)
-                            textrect.y = int(py-(universal.sf*((p.namel.get_height()/2)+pr+10)))-(5*universal.sf)
-                            textrect.w = (textrect.w*universal.sf) + (5*universal.sf*2)
-                            textrect.h = (textrect.h*universal.sf) + (5*universal.sf*2)
-                            x = (mouse[0]-400)*universal.sf
-                            y = (mouse[1]-400)*universal.sf
+                            textrect.x = int(px-(sf*(p.namel.get_width()/2)))-(5*sf)
+                            textrect.y = int(py-(sf*((p.namel.get_height()/2)+pr+10)))-(5*sf)
+                            textrect.w = (textrect.w*sf) + (5*sf*2)
+                            textrect.h = (textrect.h*sf) + (5*sf*2)
+                            x = (mouse[0]-400)*sf
+                            y = (mouse[1]-400)*sf
                             sqx = (x-px)**2
                             sqy = (y-py)**2
                             print((x, y), textrect, p.name)
@@ -220,42 +208,40 @@ while running:
                     if not linZoom.val:
                         if not scale.val:
                             dzoom = modes[scale.val]['dzoom'][0]
-                            universal.sf -= dzoom
+                            sf -= dzoom
                         else:
-                            if universal.sf <= 350: dzoom = modes[scale.val]['dzoom'][0]
-                            elif universal.sf <= 2000: dzoom = modes[scale.val]['dzoom'][1]
-                            elif universal.sf <= 8000: dzoom = modes[scale.val]['dzoom'][2]
+                            if sf <= 350: dzoom = modes[scale.val]['dzoom'][0]
+                            elif sf <= 2000: dzoom = modes[scale.val]['dzoom'][1]
+                            elif sf <= 8000: dzoom = modes[scale.val]['dzoom'][2]
                             else: dzoom = modes[scale.val]['dzoom'][3]
-                            universal.sf -= dzoom
+                            sf -= dzoom
                     else:
-                        universal.sf -= modes[scale.val]['dzoom'][0]
-                    if(universal.sf <= modes[scale.val]['zoomlim']): 
-                        universal.sf=modes[scale.val]['zoomlim']
-                    zoom()
-                    universal.pathLayer.fill((0,0,0))
+                        sf -= modes[scale.val]['dzoom'][0]
+                    if(sf <= modes[scale.val]['zoomlim']): 
+                        sf=modes[scale.val]['zoomlim']
+                    pathLayer.fill((0,0,0))
                 elif event.button == 5: # zoom out
                     if not linZoom.val:
                         if not scale.val:
                             dzoom = modes[scale.val]['dzoom'][0]
-                            universal.sf += dzoom
+                            sf += dzoom
                         else:
-                            if universal.sf <= 350: dzoom = modes[scale.val]['dzoom'][0]
-                            elif universal.sf <= 2000: dzoom = modes[scale.val]['dzoom'][1]
-                            elif universal.sf <= 8000: dzoom = modes[scale.val]['dzoom'][2]
+                            if sf <= 350: dzoom = modes[scale.val]['dzoom'][0]
+                            elif sf <= 2000: dzoom = modes[scale.val]['dzoom'][1]
+                            elif sf <= 8000: dzoom = modes[scale.val]['dzoom'][2]
                             else: dzoom = modes[scale.val]['dzoom'][3]
-                            universal.sf += dzoom
+                            sf += dzoom
                     else:
-                        universal.sf += modes[scale.val]['dzoom'][0]
-                    zoom()
-                    universal.pathLayer.fill((0,0,0))
+                        sf += modes[scale.val]['dzoom'][0]
+                    pathLayer.fill((0,0,0))
             if event.type == pg.MOUSEBUTTONUP:
                 if event.button == 1:
                     if growtime > 0.8:
-                        coord = Vector(universal.sf*(mouse[0]-400), universal.sf*(mouse[1]-400))
+                        coord = Vector(sf*(mouse[0]-400), sf*(mouse[1]-400))
                         vi = modes[scale.val]['AUs'].index(min(modes[scale.val]['AUs'], key=lambda x:abs(x-coord.mag)))
                         v = velocities[vi]
-                        off = (atan2(universal.planets[vi].vector.y, universal.planets[vi].vector.x)%(2*pi)) - atan2(coord.y, coord.x)
-                        new = Planet(int(growtime/2), coord, Vector(0,0.02*growtime), (randint(0,255),randint(0,255),randint(0,255),255), f'new{len(universal.planets)-9}', coord.mag, growtime*0.01, v, off)
+                        off = (atan2(planets[vi].vector.y, planets[vi].vector.x)%(2*pi)) - atan2(coord.y, coord.x)
+                        new = Planet(int(growtime/2), coord, Vector(0,0.02*growtime), (randint(0,255),randint(0,255),randint(0,255),255), f'new{len(planets)-9}', coord.mag, growtime*0.01, v, off)
                         growing = False
                         growtime=0
                     else:
@@ -296,33 +282,33 @@ while running:
         
         if growing:
             growtime += 0.2
-            pg.draw.circle(universal.planetLayer, (255,255,255,255), mouse, int(growtime/2))
+            pg.draw.circle(planetLayer, (255,255,255,255), mouse, int(growtime/2))
      
         for switch in switches:
             switch.show()
 
-        for planet in universal.planets:
+        for planet in planets:
             if not gravity.val:
-                planet.plotOrbit()
-            planet.plot()
+                planet.plotOrbit(sf)
+            planet.plot(sf)
             if play.val:
                 if gravity.val:
-                    planet.g_refresh(curDt)
+                    planet.g_refresh(t, curDt)
                     planet.plotPath()
                 else:
-                    planet.refresh(curDt)
+                    planet.refresh(t, curDt)
             if round(planet.vector.x) == 0 and round(planet.vector.y) == 0 and planet.name != 'Sun':
                 remove.append(planet)
         for planet in remove:
-            universal.planets.remove(planet)
+            planets.remove(planet)
             remove=[]
 
         if play.val:
-            universal.t+=curDt
+            t+=curDt
         
         pg.display.update()
-        display.blit(universal.pathLayer, (0,0))
-        display.blit(universal.planetLayer, (0,0))
+        display.blit(pathLayer, (0,0))
+        display.blit(planetLayer, (0,0))
         clock.tick(60)
 
 pg.quit()
